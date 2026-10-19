@@ -121,8 +121,20 @@ def train(cfg: dict) -> Path:
     sched = torch.optim.lr_scheduler.LambdaLR(
         opt, lambda s: min(1.0, (s + 1) / warmup) * 0.5 * (1 + math.cos(math.pi * min(s, total) / total)))
 
-    history, best, best_state = [], float("inf"), None
-    for epoch in range(tc["epochs"]):
+    history, best, best_state, start = [], float("inf"), None, 0
+    resume = run_dir / "last.pt"
+    if resume.exists():  # pick up where an interrupted run stopped
+        state = torch.load(resume, map_location=device, weights_only=False)
+        if state["config"] == cfg:
+            model.load_state_dict(state["model"])
+            opt.load_state_dict(state["opt"])
+            sched.load_state_dict(state["sched"])
+            history, best, best_state, start = (state["history"], state["best"],
+                                                state["best_state"], state["epoch"])
+            torch.set_rng_state(state["rng"].cpu())
+            print(f"resuming after epoch {start}")
+
+    for epoch in range(start, tc["epochs"]):
         model.train()
         t_start, running = time.time(), 0.0
         for _ in range(tc["steps_per_epoch"]):
@@ -143,9 +155,13 @@ def train(cfg: dict) -> Path:
             best, best_state, flag = val, copy.deepcopy(model.state_dict()), " *"
         print(f"epoch {epoch + 1:3d}  train {history[-1]['train']:.4f}  val {val:.4f}  "
               f"({history[-1]['seconds']:.0f}s){flag}", flush=True)
+        torch.save({"config": cfg, "epoch": epoch + 1, "model": model.state_dict(),
+                    "opt": opt.state_dict(), "sched": sched.state_dict(), "history": history,
+                    "best": best, "best_state": best_state, "rng": torch.get_rng_state()}, resume)
 
     torch.save({"config": cfg, "state_dict": best_state}, run_dir / "model.pt")
     (run_dir / "history.json").write_text(json.dumps(history, indent=1))
+    resume.unlink()
     return run_dir
 
 

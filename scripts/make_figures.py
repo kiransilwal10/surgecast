@@ -20,11 +20,12 @@ LEAD = 12  # hours ahead shown in the case studies and the animation
 
 # (storm, year, place, lat, lon): the nearest gauge with data during the storm is used
 CASES = [
-    ("IAN", 2022, "Naples, FL", 26.13, -81.81),
-    ("IDALIA", 2023, "Cedar Key, FL", 29.13, -83.03),
     ("HELENE", 2024, "Cedar Key, FL", 29.13, -83.03),
-    ("MILTON", 2024, "St. Petersburg, FL", 27.76, -82.63),
-    ("BERYL", 2024, "Galveston, TX", 29.31, -94.79),
+    ("IDALIA", 2023, "Cedar Key, FL", 29.13, -83.03),
+    ("IAN", 2022, "Fort Myers, FL", 26.65, -81.87),  # right of the eye: onshore wind
+    ("IAN", 2022, "St. Petersburg, FL", 27.76, -82.63),  # left of the eye: Tampa Bay drains
+    ("MILTON", 2024, "Fort Myers, FL", 26.65, -81.87),
+    ("BERYL", 2024, "Galveston, TX", 29.36, -94.72),
 ]
 ANIMATION = ("HELENE", 2024, "2024-09-25 12:00", "2024-09-27 18:00", (-90.0, -79.5, 24.0, 31.5))
 
@@ -63,7 +64,7 @@ def main():
     # 1. network map with the test-period hurricanes that hit the coast
     src, dst = knn_edges(data.lat, data.lon, 6)
     shown = []
-    for name, year, *_ in CASES:
+    for name, year in dict.fromkeys((c[0], c[1]) for c in CASES):
         _, tlat, tlon, _ = storm_track(data, tracks, name, year)
         shown.append((name.title(), tlat, tlon))
     viz.network_map(data.lat, data.lon, src, dst, FIG / "network.png", shown)
