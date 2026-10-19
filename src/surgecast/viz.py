@@ -24,6 +24,7 @@ COLORS = {
     "GRU (no graph)": "#0969da", "GRU + storm node": "#54aeff",
     "GNN (no storm node)": "#8250df", "SurgeCast": "#cf222e",
 }
+TRACK_COLORS = ("#cf222e", "#e16f24", "#bf8700", "#1a7f37", "#0969da", "#8250df")
 
 plt.rcParams.update({
     "font.size": 10, "axes.edgecolor": MUTED, "axes.labelcolor": INK, "xtick.color": MUTED,
@@ -55,15 +56,12 @@ def network_map(lat, lon, src, dst, path: Path, tracks=None):
     for s, d in zip(src, dst):
         if s < d:
             ax.plot([lon[s], lon[d]], [lat[s], lat[d]], color="#8250df", lw=0.6, alpha=0.5, **tf)
-    if tracks:
-        for name, tlat, tlon in tracks:
-            ax.plot(tlon, tlat, color="#cf222e", lw=1.0, alpha=0.6, **tf)
-            # label where the storm comes closest to the network (about landfall)
-            d = (tlat[:, None] - lat) ** 2 + ((tlon[:, None] - lon) * np.cos(np.deg2rad(30))) ** 2
-            i = int(np.argmin(d.min(1)))
-            ax.text(tlon[i] + 0.3, tlat[i] - 0.6, name, color="#cf222e", fontsize=8,
-                    clip_on=True, **tf)
+    for (name, tlat, tlon), color in zip(tracks or [], TRACK_COLORS):
+        ax.plot(tlon, tlat, color=color, lw=1.3, alpha=0.8, label=name, **tf)
     ax.scatter(lon, lat, s=14, color=INK, zorder=3, **tf)
+    if tracks:
+        ax.legend(loc="lower right", fontsize=8, title="Test-period storms", title_fontsize=8,
+                  frameon=True, facecolor="white", edgecolor="none", framealpha=0.9)
     ax.set_title(f"{len(lat)} NOAA tide gauges, {len(src) // 2} graph edges", loc="left", color=INK)
     fig.savefig(path)
     plt.close(fig)
@@ -114,17 +112,21 @@ def case_studies(cases: list[dict], path: Path, lead: int):
     plt.close(fig)
 
 
-def storm_animation(times, lat, lon, observed, forecast, storm_lat, storm_lon, title,
-                    path: Path, lead: int, extent, vmax: float = 2.0):
-    """Side-by-side gauge maps: observed surge vs. SurgeCast forecast issued ``lead`` h earlier."""
-    fig = plt.figure(figsize=(10.5, 4.3))
+def storm_animation(times, lat, lon, observed, forecasts: dict, storm_lat, storm_lon, title,
+                    path: Path, extent, vmax: float = 2.0):
+    """Gauge maps side by side: observed surge, then each forecast valid at the same hour."""
+    panels = {"Observed surge": observed, **forecasts}
+    n = len(panels)
+    fig = plt.figure(figsize=(5.0 * n + 0.6, 4.3))
     axes, tfs = [], []
-    for k, rect in enumerate((121, 122)):
-        ax, tf = map_axes(fig, rect, extent)
+    for k in range(n):
+        ax, tf = map_axes(fig, 100 + 10 * n + k + 1, extent)
         axes.append(ax), tfs.append(tf)
-    fig.subplots_adjust(left=0.01, right=0.9, top=0.86, bottom=0.08, wspace=0.04)
-    axes[0].set_title("Observed surge", loc="left", color=INK)
-    axes[1].set_title(f"SurgeCast, {lead} h ahead", loc="left", color=INK)
+    width = fig.get_figwidth()
+    right = 1 - 1.0 / width  # leave an inch for the colorbar
+    fig.subplots_adjust(left=0.01, right=right, top=0.86, bottom=0.08, wspace=0.04)
+    for ax, name in zip(axes, panels):
+        ax.set_title(name, loc="left", color=INK)
     scat = [ax.scatter(lon, lat, c=np.zeros_like(lat), cmap="RdBu_r", vmin=-vmax, vmax=vmax,
                        s=60, edgecolor=INK, linewidth=0.4, zorder=3, **tf)
             for ax, tf in zip(axes, tfs)]
@@ -132,11 +134,12 @@ def storm_animation(times, lat, lon, observed, forecast, storm_lat, storm_lon, t
     eye = [ax.plot([], [], marker="o", ms=9, mfc="none", mec="#cf222e", mew=2, **tf)[0]
            for ax, tf in zip(axes, tfs)]
     stamp = fig.text(0.01, 0.02, "", color=MUTED)
-    fig.colorbar(scat[1], cax=fig.add_axes([0.915, 0.18, 0.012, 0.6]), label="surge above normal (m)")
+    fig.colorbar(scat[-1], cax=fig.add_axes([right + 0.15 / width, 0.18, 0.13 / width, 0.6]),
+                 label="surge above normal (m)")
     fig.suptitle(title, x=0.01, ha="left", color=INK, y=0.98)
 
     def draw(i):
-        for k, values in enumerate((observed[i], forecast[i])):
+        for k, values in enumerate(v[i] for v in panels.values()):
             scat[k].set_array(np.ma.masked_invalid(values))
             ok = np.isfinite(storm_lat[: i + 1])
             track[k].set_data(storm_lon[: i + 1][ok], storm_lat[: i + 1][ok])

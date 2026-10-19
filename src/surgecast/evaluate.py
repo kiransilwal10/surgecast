@@ -144,7 +144,7 @@ def markdown_tables(results: dict) -> str:
     leads = results["leads"]
     lines = []
     for subset, table in results["rmse_cm"].items():
-        lines += [f"\n**{subset}** ({results['n_points'][subset]:,} gauge-hours)\n",
+        lines += [f"\n**{subset}** ({results['n_points'][subset]:,} forecasts, all gauges and leads)\n",
                   "| Model | " + " | ".join(f"{l} h" for l in leads) + " | all leads |",
                   "|---|" + "---:|" * (len(leads) + 1)]
         best = {l: min(v["by_lead"][l] for v in table.values()) for l in leads}

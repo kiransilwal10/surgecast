@@ -16,7 +16,7 @@ from surgecast.physics import haversine_km
 from surgecast.storms import parse_hurdat2
 from surgecast.train import build_model, pick_device
 
-LEAD = 12  # hours ahead shown in the case studies and the animation
+LEAD = 12  # hours ahead shown in the case studies and the influence map
 
 # (storm, year, place, lat, lon): the nearest gauge with data during the storm is used
 CASES = [
@@ -28,6 +28,7 @@ CASES = [
     ("BERYL", 2024, "Galveston, TX", 29.36, -94.72),
 ]
 ANIMATION = ("HELENE", 2024, "2024-09-25 12:00", "2024-09-27 18:00", (-90.0, -79.5, 24.0, 31.5))
+ANIMATION_LEADS = (6, 12)
 
 
 def storm_track(data, tracks, name, year):
@@ -112,10 +113,14 @@ def main():
     in_box = ((data.lon > extent[0]) & (data.lon < extent[1]) &
               (data.lat > extent[2]) & (data.lat < extent[3]))
     obs = resid[frames] - slow[frames]
-    fc = preds["SurgeCast"][frames - LEAD - t_test[0], LEAD - 1].astype(np.float32) - slow[frames - LEAD]
-    obs[:, ~in_box], fc[:, ~in_box] = np.nan, np.nan
-    viz.storm_animation(data.index[frames], data.lat, data.lon, obs, fc, s_lat, s_lon,
-                        f"Hurricane {name.title()} ({year})", FIG / "helene.gif", LEAD, extent)
+    obs[:, ~in_box] = np.nan
+    fcs = {}
+    for lead in ANIMATION_LEADS:
+        fc = preds["SurgeCast"][frames - lead - t_test[0], lead - 1].astype(np.float32) - slow[frames - lead]
+        fc[:, ~in_box] = np.nan
+        fcs[f"SurgeCast, {lead} h ahead"] = fc
+    viz.storm_animation(data.index[frames], data.lat, data.lon, obs, fcs, s_lat, s_lon,
+                        f"Hurricane {name.title()} ({year})", FIG / "helene.gif", extent)
 
     # 5. which gauges does the forecast at the Helene landfall gauge listen to?
     helene = cases[[c[0] for c in CASES].index("HELENE")]
