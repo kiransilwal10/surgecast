@@ -44,10 +44,13 @@ def pick_device() -> torch.device:
 
 def storm_distance(data: SurgeData, t0: np.ndarray) -> np.ndarray:
     """(len(t0), N) distance in km from each gauge to the nearest active storm (inf if none)."""
-    sx, sv = np.asarray(data.storm_x[t0]), np.asarray(data.storm_valid[t0])
-    d = haversine_km(sx[..., 0, None], sx[..., 1, None], data.lat, data.lon)  # (B, S, N)
-    d = np.where(sv[..., None], d, np.inf)
-    return d.min(1)
+    out = np.empty((len(t0), data.n_nodes), dtype=np.float32)
+    for i in range(0, len(t0), 20_000):
+        rows = t0[i:i + 20_000]
+        sx, sv = np.asarray(data.storm_x[rows]), np.asarray(data.storm_valid[rows])
+        d = haversine_km(sx[..., 0, None], sx[..., 1, None], data.lat, data.lon)  # (B, S, N)
+        out[i:i + 20_000] = np.where(sv[..., None], d, np.inf).min(1)
+    return out
 
 
 def event_weights(data: SurgeData, t0: np.ndarray, boost: float) -> np.ndarray:
@@ -68,7 +71,7 @@ def masked_mse(pred: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch
 
 def build_model(cfg: dict, data: SurgeData) -> SurgeCast:
     return SurgeCast(data.lat, data.lon, in_channels=data.x.shape[-1],
-                     horizon=cfg["horizon"], **cfg["model"])
+                     horizon=cfg["horizon"], history=cfg["history"], **cfg["model"])
 
 
 @torch.no_grad()

@@ -57,7 +57,7 @@ def test_surgecast_shapes_and_ablation_switches():
     for use_graph in (True, False):
         for use_storms in (True, False):
             m = SurgeCast(lat, lon, in_channels=8, horizon=6, dim=32, layers=2, heads=4, k=3,
-                          use_graph=use_graph, use_storms=use_storms)
+                          use_graph=use_graph, use_storms=use_storms, history=12)
             out = m(batch)
             assert out.shape == (3, 6, n) and torch.isfinite(out).all()
 
@@ -67,7 +67,7 @@ def test_storm_only_reaches_gauges_within_range():
     lat = np.array([28.0, 28.5, 29.0, 40.0, 41.0, 42.0])
     lon = np.array([-82.0, -82.2, -82.4, -70.0, -70.5, -71.0])
     m = SurgeCast(lat, lon, in_channels=8, horizon=4, dim=32, layers=1, heads=4, k=2,
-                  use_graph=False, use_storms=True).eval()
+                  use_graph=False, use_storms=True, history=12).eval()
     batch = _batch(1, 12, n, 8, 4)
     base = m({**batch, "storm_valid": torch.zeros(1, 2, dtype=torch.bool)})
     with_storm = m(batch)

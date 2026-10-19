@@ -8,6 +8,11 @@
     process  L rounds of attention message passing between neighbouring gauges
     decode   per-gauge MLP -> change in surge for each of the next H hours,
              conditioned on the known future astronomical tide
+
+The decoder output is added to a linear forecast from the raw inputs (the same
+information the ridge baseline gets). The network therefore learns a nonlinear,
+graph- and storm-aware correction on top of a linear autoregressive model,
+instead of re-learning short-lead persistence from scratch.
 """
 
 from __future__ import annotations
@@ -71,7 +76,7 @@ class SurgeCast(nn.Module):
     def __init__(self, lat: np.ndarray, lon: np.ndarray, in_channels: int, horizon: int,
                  dim: int = 128, layers: int = 4, heads: int = 4, k: int = 6,
                  use_graph: bool = True, use_storms: bool = True, emb_dim: int = 16,
-                 patch: int = 6):
+                 patch: int = 6, history: int = 48):
         super().__init__()
         n = len(lat)
         src, dst = knn_edges(lat, lon, k)
@@ -91,6 +96,7 @@ class SurgeCast(nn.Module):
         self.storms = StormEncoder(dim) if use_storms else None
         self.processor = nn.ModuleList(GraphAttentionLayer(dim, heads) for _ in range(layers))
         self.decoder = MLP(dim + horizon + 1, dim, horizon)
+        self.linear = nn.Linear(history * in_channels + horizon + 1, horizon)
 
     def forward(self, batch: dict, return_attention: bool = False):
         x = batch["x"]
@@ -112,5 +118,7 @@ class SurgeCast(nn.Module):
             attention.append(alpha)
 
         tide = torch.cat([batch["tide_future"].transpose(1, 2), batch["tide_now"][..., None]], -1)
-        out = self.decoder(torch.cat([h, tide], -1)).transpose(1, 2)  # (B, H, N)
+        flat = x.permute(0, 2, 1, 3).reshape(B, N, T * C)
+        out = self.decoder(torch.cat([h, tide], -1)) + self.linear(torch.cat([flat, tide], -1))
+        out = out.transpose(1, 2)  # (B, H, N)
         return (out, attention) if return_attention else out
