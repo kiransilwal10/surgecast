@@ -1,0 +1,23 @@
+# Full model: gauge graph + hurricane nodes.
+name: surgecast
+data_dir: data/processed
+history: 48   # hours of past observations per gauge
+horizon: 24   # forecast leads 1..24 h
+
+model:
+  dim: 128
+  layers: 4
+  heads: 4
+  k: 6          # nearest neighbours per gauge before symmetrising
+  use_graph: true
+  use_storms: true
+
+train:
+  epochs: 30
+  steps_per_epoch: 1000
+  batch_size: 32
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  event_boost: 4.0   # storm / big-surge hours are sampled 5x more often
+  val_stride: 3
+  seed: 0
