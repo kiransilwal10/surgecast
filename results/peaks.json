@@ -1,0 +1,56 @@
+[
+ {
+  "storm": "Helene 2024",
+  "gauge": "Cedar Key",
+  "observed_peak_m": 3.1480000019073486,
+  "Tide table (12 h)": 0.19621388614177704,
+  "Persistence (12 h)": 1.0479999780654907,
+  "GRU (no graph) (12 h)": 0.5634765625,
+  "SurgeCast (12 h)": 1.1650390625
+ },
+ {
+  "storm": "Idalia 2023",
+  "gauge": "Cedar Key",
+  "observed_peak_m": 2.6710000038146973,
+  "Tide table (12 h)": 0.10523749887943268,
+  "Persistence (12 h)": 0.5049999952316284,
+  "GRU (no graph) (12 h)": 0.50830078125,
+  "SurgeCast (12 h)": 0.75048828125
+ },
+ {
+  "storm": "Ian 2022",
+  "gauge": "Fort Myers",
+  "observed_peak_m": 2.180000066757202,
+  "Tide table (12 h)": 0.19404582679271698,
+  "Persistence (12 h)": -0.31599998474121094,
+  "GRU (no graph) (12 h)": 0.0028133392333984375,
+  "SurgeCast (12 h)": 0.311279296875
+ },
+ {
+  "storm": "Ian 2022",
+  "gauge": "St. Petersburg",
+  "observed_peak_m": -1.7549999952316284,
+  "Tide table (12 h)": 0.16981667280197144,
+  "Persistence (12 h)": -0.4479999840259552,
+  "GRU (no graph) (12 h)": -0.439453125,
+  "SurgeCast (12 h)": -0.481201171875
+ },
+ {
+  "storm": "Milton 2024",
+  "gauge": "Fort Myers",
+  "observed_peak_m": 1.709999918937683,
+  "Tide table (12 h)": 0.30827778577804565,
+  "Persistence (12 h)": 0.33399999141693115,
+  "GRU (no graph) (12 h)": 0.482177734375,
+  "SurgeCast (12 h)": 0.7470703125
+ },
+ {
+  "storm": "Beryl 2024",
+  "gauge": "Galveston Bay Entrance, North Jetty",
+  "observed_peak_m": 1.2709999084472656,
+  "Tide table (12 h)": 0.2987194359302521,
+  "Persistence (12 h)": 0.625,
+  "GRU (no graph) (12 h)": 0.53857421875,
+  "SurgeCast (12 h)": 0.63330078125
+ }
+]
