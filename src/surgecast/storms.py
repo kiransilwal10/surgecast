@@ -53,10 +53,10 @@ def parse_hurdat2(path: Path, start_year: int, end_year: int) -> list[Track]:
         lon = np.array([_coord(r[5]) for r in rows])
         vmax = np.array([float(r[6]) for r in rows])
         pmin = np.array([float(r[7]) for r in rows])
+        # 34-kt wind radius (storm size), mean over quadrants. 0 means no
+        # tropical-storm-force wind in that quadrant; -999 means not reported.
         radii = np.array([[float(x) for x in r[8:12]] for r in rows])
-        # mean 34-kt wind radius over the quadrants that report one (2004+)
-        has = radii > 0
-        r34 = np.where(has.any(1), (radii * has).sum(1) / np.maximum(has.sum(1), 1), np.nan)
+        r34 = np.where((radii < 0).any(1), np.nan, radii.mean(1))
         pmin[pmin < 0] = np.nan
         vmax[vmax < 0] = np.nan
         # tracks occasionally repeat a timestamp (e.g. landfall records)
